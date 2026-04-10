@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agent Task Timeline — Cross-Platform Spec</title>
+  <title>Agent Task Timeline — Copilot Mobile Spec</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,613 +21,396 @@
   <nav>
     <ul>
       <li><a href="#principles">Principles</a></li>
-      <li><a href="#core-concepts">Core Concepts</a></li>
-      <li><a href="#session-status">Session Status Model</a></li>
-      <li><a href="#timeline-structure">Timeline Structure</a></li>
-      <li><a href="#implementation-reference">Implementation Reference</a>
-        <ul>
-          <li><a href="#event-rendering">Event Rendering</a></li>
-          <li><a href="#hidden-events">Hidden Events</a></li>
-          <li><a href="#hidden-tools">Hidden Tools</a></li>
-        </ul>
-      </li>
-      <li><a href="#content-suppression">Content Suppression</a></li>
-      <li><a href="#user-message-resolution">User Message Resolution</a></li>
-      <li><a href="#tool-call-grouping">Tool Call Grouping</a></li>
-      <li><a href="#summary-extraction">Summary Extraction</a></li>
-      <li><a href="#multi-session">Multi-Session Behavior</a></li>
-      <li><a href="#session-origins">Session Origins</a></li>
-      <li><a href="#open-questions">Open Questions</a></li>
-      <li><a href="#platform-parity">Platform Parity Status</a></li>
-      <li><a href="#decision-log">Decision Log</a></li>
+      <li><a href="#concepts">Concepts</a></li>
+      <li><a href="#timeline">Timeline Layout</a></li>
+      <li><a href="#work-bursts">Work Bursts</a></li>
+      <li><a href="#multi-session">Multi-Session</a></li>
+      <li><a href="#session-status">Session Status</a></li>
+      <li><a href="#user-message">User Message Resolution</a></li>
+      <li><a href="#parity">Platform Parity</a></li>
+      <li><a href="#decisions">Decisions</a></li>
     </ul>
   </nav>
   <div class="sidebar-meta">
-    Last updated: April 2026<br>
-    Maintained by: iOS &amp; Android Copilot teams
+    April 2026<br>iOS &amp; Android teams
   </div>
 </aside>
 
 <main class="content">
 
-  <!-- ─── Header ─── -->
   <header class="page-header">
     <h1>Agent Task Timeline</h1>
-    <p class="lead">Lightweight source of truth for iOS and Android. Not a feature spec — a decision anchor so we stop re-asking the same questions.</p>
+    <p class="lead">Decision anchor for iOS and Android. Not a feature spec — a shared source of truth so we stop re-asking the same questions.</p>
   </header>
 
-  <dl class="legend">
-    <dt>Target behavior</dt>
-    <dd>What both platforms should converge on. Treat as decided unless marked otherwise.</dd>
-    <dt>⚠️ Platform gap</dt>
-    <dd>Called out inline where current implementation doesn't match target.</dd>
-    <dt>❓ Open question</dt>
-    <dd>Not yet decided. Don't implement until resolved.</dd>
-    <dt>Decision Log</dt>
-    <dd>Settled decisions with rationale (bottom of page).</dd>
-  </dl>
-
-  <!-- ─── Principles ─── -->
+  <!-- ═══════════════════════════════════════ -->
+  <!-- PRINCIPLES                              -->
+  <!-- ═══════════════════════════════════════ -->
   <section id="principles">
     <h2>Principles</h2>
-
-    <div class="principle">
-      <strong>1. Show the outcome, not the process.</strong>
-      <p>Most users don't care about individual tool calls — they want to know: what did I ask, what happened, did it work? The timeline exists for transparency, not as a primary reading experience.</p>
-    </div>
-
-    <div class="principle">
-      <strong>2. One piece of information, one place.</strong>
-      <p>Never show the same content twice (user message in bubble AND inline, summary inside AND outside the card). Extract and deduplicate.</p>
-    </div>
-
-    <div class="principle">
-      <strong>3. Work bursts collapse, sessions don't.</strong>
-      <p>The flat timeline groups consecutive tool calls into collapsible bursts, but individual sessions are not collapsible units. Session boundaries are marked by lightweight inline dividers, not expandable cards.</p>
-    </div>
-
-    <div class="principle">
-      <strong>4. Platform parity over platform flair.</strong>
-      <p>iOS and Android should make the same structural decisions about what to show, hide, group, and extract. Visual styling can differ; information architecture must not.</p>
-    </div>
-
-    <div class="principle">
-      <strong>5. Terminal sessions are frozen, active sessions are live.</strong>
-      <p>Completed/failed/cancelled/timed-out sessions get summary treatment. In-progress sessions show working state. Never show a "summary" for something still running.</p>
+    <div class="principles-grid">
+      <div class="principle-card">
+        <span class="principle-num">1</span>
+        <strong>Show the outcome, not the process</strong>
+        <p>Users want to know: what did I ask, what happened, did it work?</p>
+      </div>
+      <div class="principle-card">
+        <span class="principle-num">2</span>
+        <strong>One piece of info, one place</strong>
+        <p>Never show the same content twice. Extract and deduplicate.</p>
+      </div>
+      <div class="principle-card">
+        <span class="principle-num">3</span>
+        <strong>Bursts collapse, sessions don't</strong>
+        <p>Tool call groups are collapsible. Session boundaries are lightweight dividers.</p>
+      </div>
+      <div class="principle-card">
+        <span class="principle-num">4</span>
+        <strong>Platform parity over flair</strong>
+        <p>Visual styling can differ. Information architecture must not.</p>
+      </div>
+      <div class="principle-card">
+        <span class="principle-num">5</span>
+        <strong>Terminal = frozen, active = live</strong>
+        <p>Summaries only appear for finished sessions. Never for something still running.</p>
+      </div>
     </div>
   </section>
 
-  <!-- ─── Core Concepts ─── -->
-  <section id="core-concepts">
+  <!-- ═══════════════════════════════════════ -->
+  <!-- CONCEPTS                                -->
+  <!-- ═══════════════════════════════════════ -->
+  <section id="concepts">
     <h2>Core Concepts</h2>
-
-    <dl class="definition">
-      <dt>Task</dt>
-      <dd>A user-initiated request to a Copilot agent. A task contains one or more <strong>sessions</strong>. Think of it as the top-level container — "Fix the auth bug" is a task.</dd>
-    </dl>
-
-    <dl class="definition">
-      <dt>Session</dt>
-      <dd>A single agent execution within a task. A task may have multiple sessions if the user starts follow-up work, or if work is triggered from different surfaces (CLI, web, mobile). Each session has its own event stream, state, and lifecycle.</dd>
-    </dl>
-
-    <dl class="definition">
-      <dt>Event</dt>
-      <dd>An atomic unit within a session's event stream. Events are the raw data — messages, tool executions, permissions, lifecycle signals. The timeline is built by processing and filtering these events.</dd>
-    </dl>
+    <div class="concepts-row">
+      <div class="concept-card">
+        <div class="concept-icon">📋</div>
+        <strong>Task</strong>
+        <p>A user request to a Copilot agent. Contains one or more sessions. "Fix the auth bug" is a task.</p>
+      </div>
+      <div class="concept-arrow">→</div>
+      <div class="concept-card">
+        <div class="concept-icon">⚡</div>
+        <strong>Session</strong>
+        <p>A single agent execution. Each session has its own event stream, state, and lifecycle.</p>
+      </div>
+      <div class="concept-arrow">→</div>
+      <div class="concept-card">
+        <div class="concept-icon">⚛</div>
+        <strong>Event</strong>
+        <p>An atomic unit — messages, tool calls, permissions. The timeline is built from these.</p>
+      </div>
+    </div>
   </section>
 
-  <!-- ─── Session Status Model ─── -->
-  <section id="session-status">
-    <h2>Session Status Model</h2>
+  <!-- ═══════════════════════════════════════ -->
+  <!-- TIMELINE LAYOUT (with visual)           -->
+  <!-- ═══════════════════════════════════════ -->
+  <section id="timeline">
+    <h2>Timeline Layout</h2>
+    <p>The timeline is a flat vertical stream. No per-session cards. Sessions flow into each other, separated by lightweight dividers.</p>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Status</th><th>Active?</th><th>Meaning</th><th>UI Behavior</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><code>queued</code></td><td>—</td><td>Waiting to start</td><td>Show queued indicator</td></tr>
-          <tr><td><code>in_progress</code></td><td><span class="badge badge-green">Active</span></td><td>Agent is working</td><td>Show working indicator, no summary</td></tr>
-          <tr><td><code>idle</code></td><td><span class="badge badge-green">Active</span></td><td>Agent paused (waiting)</td><td>Preserve current state</td></tr>
-          <tr><td><code>waiting_for_user</code></td><td><span class="badge badge-green">Active</span></td><td>Blocked on permission/input</td><td>Show permission or prompt UI</td></tr>
-          <tr><td><code>completed</code></td><td><span class="badge badge-gray">Terminal</span></td><td>Finished successfully</td><td>Extract summary, freeze content</td></tr>
-          <tr><td><code>failed</code></td><td><span class="badge badge-red">Terminal</span></td><td>Terminated with error</td><td>Extract summary, show error state</td></tr>
-          <tr><td><code>cancelled</code></td><td><span class="badge badge-gray">Terminal</span></td><td>User stopped it</td><td>Extract summary</td></tr>
-          <tr><td><code>timed_out</code></td><td><span class="badge badge-yellow">Terminal</span></td><td>Exceeded time limit</td><td>Extract summary</td></tr>
-        </tbody>
-      </table>
+    <div class="diagram">
+      <div class="diagram-label">Single-session task</div>
+      <div class="timeline-visual">
+        <div class="tl-item tl-user">
+          <span class="tl-icon">👤</span>
+          <div class="tl-box tl-box-user">Fix the auth bug in login.ts</div>
+        </div>
+        <div class="tl-item tl-tool">
+          <span class="tl-icon">🔧</span>
+          <div class="tl-box tl-box-tool">grep "login" src/</div>
+        </div>
+        <div class="tl-item tl-burst">
+          <span class="tl-icon">📦</span>
+          <div class="tl-box tl-box-burst">
+            <div class="burst-header">Used 5 tools <span class="burst-badge">collapsed</span></div>
+            <div class="burst-detail">view, edit, grep, edit, bash</div>
+          </div>
+        </div>
+        <div class="tl-item tl-assistant">
+          <span class="tl-icon">💬</span>
+          <div class="tl-box tl-box-assistant">I've fixed the auth bug by…</div>
+        </div>
+        <div class="tl-item tl-summary">
+          <span class="tl-icon">📋</span>
+          <div class="tl-box tl-box-summary">Summary — Fixed the authentication…</div>
+        </div>
+      </div>
     </div>
 
-    <p><strong>Rule:</strong> Summary extraction and content freezing only happen for non-active (terminal) sessions.</p>
-  </section>
-
-  <!-- ─── Timeline Structure ─── -->
-  <section id="timeline-structure">
-    <h2>Timeline Structure</h2>
-
-    <p>The timeline is a flat vertical stream. There are no per-session cards or expand/collapse wrappers — sessions flow into each other, separated by lightweight inline dividers.</p>
-
-    <h3>Single-session task</h3>
-<pre><code>👤 User Message Bubble
-├─ 🔧 Tool call
-├─ 🔧 Tool call group (burst)   ← collapsible work burst
-├─ 💬 Assistant message
-├─ 🔒 Permission request
-├─ ⟳ Working indicator           ← only if in_progress
-└─ 📋 Summary Message            ← only for terminal sessions</code></pre>
-
-    <h3>Multi-session task</h3>
-    <p>When a task has 2+ sessions, an inline divider separates them:</p>
-<pre><code>👤 User Message Bubble (session 1)
-├─ 🔧 Tool call group (burst)
-├─ 💬 Assistant message
-└─ 📋 Summary Message
-─── Continued from CLI · GPT-4.1 · 2m ago ───    ← session divider
-👤 User Message Bubble (session 2)
-├─ 🔧 Tool call
-├─ 💬 Assistant message
-└─ 📋 Summary Message
-─── Continued from web · GPT-4.1 · 5m ago ───    ← session divider
-👤 User Message Bubble (session 3)
-├─ 🔧 Tool call group (burst)
-└─ ⟳ Working indicator</code></pre>
-
-    <h3>Session divider format</h3>
-<pre><code>─── Continued from &lt;origin&gt; · &lt;model&gt; · &lt;relative time&gt; ───</code></pre>
-
+    <h3>Key rules</h3>
     <ul>
-      <li><strong>Origin:</strong> human-readable label mapped from producer — <code>"copilot-cli"</code> → <code>"CLI"</code>, <code>"copilot-web"</code> → <code>"web"</code>, <code>"copilot-vscode"</code> → <code>"VS Code"</code>, <code>"copilot-mobile"</code> → <code>"mobile"</code></li>
-      <li><strong>Model:</strong> which model the session used (e.g., GPT-4.1)</li>
-      <li><strong>Relative time:</strong> when the session started (e.g., "2m ago")</li>
-      <li>Only appears between sessions (the first session has no divider)</li>
-      <li>Rendered as a centered text divider with horizontal rules — no card, no border, no tap target</li>
-    </ul>
-
-    <h3>Key layout rules</h3>
-    <ul>
-      <li><strong>User message bubble</strong> sits at the top of each session's events, always visible</li>
-      <li><strong>Summary message</strong> appears at the end of a session's events, always visible (terminal sessions only)</li>
-      <li><strong>Working indicator</strong> appears at the bottom of the timeline when the latest session is <code>in_progress</code></li>
-      <li><strong>Session divider</strong> appears between sessions — it's a timeline entry, not a structural header</li>
-      <li><strong>Status</strong> is communicated through the working indicator (in-progress) and summary (terminal) — NOT the divider</li>
-      <li><strong>Tool call bursts</strong> are the only collapsible unit in the timeline</li>
+      <li><strong>User bubble</strong> — always visible at the top of each session</li>
+      <li><strong>Summary</strong> — always visible at the bottom (terminal sessions only)</li>
+      <li><strong>Working indicator</strong> — bottom of timeline when session is <code>in_progress</code></li>
+      <li><strong>Tool call bursts</strong> — the only collapsible unit</li>
     </ul>
   </section>
 
-  <!-- ─── Appendix: Implementation Reference ─── -->
-  <section id="implementation-reference">
-    <h2>Appendix: Implementation Reference</h2>
-    <p>The following sections are detailed reference for engineers implementing or auditing parity. Not required reading for understanding the design.</p>
+  <!-- ═══════════════════════════════════════ -->
+  <!-- WORK BURSTS (with visual)               -->
+  <!-- ═══════════════════════════════════════ -->
+  <section id="work-bursts">
+    <h2>Work Bursts</h2>
+    <p>Consecutive tool calls group into collapsible "bursts" to reduce noise.</p>
 
-    <h3 id="event-rendering">Rendered Events</h3>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Event</th><th>Renders as</th><th>Notes</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><code>user.message</code></td><td>Message bubble or inline</td><td>First one goes to bubble (see resolution rules)</td></tr>
-          <tr><td><code>assistant.message</code></td><td>Message cell</td><td>After filtering (see suppression rules)</td></tr>
-          <tr><td><code>assistant.intent</code></td><td>Intent label</td><td>Shows what the agent is currently doing</td></tr>
-          <tr><td><code>tool.execution.start/complete</code></td><td>Tool call cell</td><td>Unless it's a hidden tool</td></tr>
-          <tr><td><code>tool.user.requested</code></td><td>Permission cell</td><td>When agent needs user approval</td></tr>
-          <tr><td><code>user.input.requested</code></td><td>Prompt cell</td><td>When agent asks a question</td></tr>
-          <tr><td><code>session.error</code></td><td>Error display</td><td>Session-level errors</td></tr>
-        </tbody>
-      </table>
+    <div class="diagram">
+      <div class="diagram-cols">
+        <div class="diagram-col">
+          <div class="diagram-label">Before (flat)</div>
+          <div class="timeline-visual mini">
+            <div class="tl-item tl-tool"><span class="tl-icon">🔧</span><div class="tl-box tl-box-tool">grep</div></div>
+            <div class="tl-item tl-tool"><span class="tl-icon">🔧</span><div class="tl-box tl-box-tool">view</div></div>
+            <div class="tl-item tl-tool"><span class="tl-icon">🔧</span><div class="tl-box tl-box-tool">edit</div></div>
+            <div class="tl-item tl-tool"><span class="tl-icon">🔧</span><div class="tl-box tl-box-tool">view</div></div>
+            <div class="tl-item tl-tool"><span class="tl-icon">🔧</span><div class="tl-box tl-box-tool">bash</div></div>
+            <div class="tl-item tl-tool"><span class="tl-icon">🔧</span><div class="tl-box tl-box-tool">edit</div></div>
+          </div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-col">
+          <div class="diagram-label">After (burst)</div>
+          <div class="timeline-visual mini">
+            <div class="tl-item tl-burst">
+              <span class="tl-icon">📦</span>
+              <div class="tl-box tl-box-burst">
+                <div class="burst-header">Used 6 tools · 12s <span class="burst-badge">▸</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <h3 id="hidden-events">Hidden Events (never rendered)</h3>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Event</th><th>Why</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><code>session.start/resume/idle/info/truncation</code></td><td>Lifecycle plumbing</td></tr>
-          <tr><td><code>assistant.turn.start/end</code></td><td>Internal framing</td></tr>
-          <tr><td><code>assistant.usage</code></td><td>Token accounting</td></tr>
-          <tr><td><code>hook.start/end</code></td><td>Internal pipeline</td></tr>
-          <tr><td><code>subagent.started/completed/failed</code></td><td>Metadata only (nested work shown via parent)</td></tr>
-          <tr><td><code>custom.agent.selected</code></td><td>Selection metadata</td></tr>
-          <tr><td><code>abort</code></td><td>Handled via session state</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <h3 id="hidden-tools">Hidden Tools</h3>
-    <p>These are "infrastructure" tools: <code>rename_session</code>, <code>report_intent</code>, <code>sql</code>, <code>store_memory</code>, <code>rename_workspace</code>, <code>list_sessions_and_chats</code>, <code>list_workspaces_and_chats</code>, <code>get_workspace</code>, <code>delete_item</code>, <code>create_session</code>, <code>send_session_message</code>, <code>send_chat_message</code>, <code>navigate_to</code>, <code>ask_user</code>, <code>exit_plan_mode</code>, <code>annotate_diff_line</code>, <code>generate_topics</code>, <code>generate_findings</code>, <code>get_changes_overview</code>, <code>tool_search</code> (prefix match), and PR review tools (add/remove/reply comments).</p>
-
-    <p><strong>Both platforms must maintain the same hidden tools list.</strong></p>
-
-    <div class="callout callout-warn">
-      <span class="callout-label">⚠️ Platform Gap</span>
-      <p>iOS has this list implemented (<code>AgentTaskViewModelBuilder.swift:11-36</code>). Android does not have an equivalent filter.</p>
-    </div>
-  </section>
-
-  <!-- ─── Content Suppression Rules ─── -->
-  <section id="content-suppression">
-    <h2>Content Suppression Rules</h2>
-    <p>Not all rendered events actually show content. These rules apply after an event is selected for display:</p>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Condition</th><th>Action</th><th>Reason</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><code>content</code> starts with <code>diff --git</code> or <code>@@</code></td><td>Blank content</td><td>Diff echo from tool output</td></tr>
-          <tr><td><code>content</code> contains <code>&lt;pr_title&gt;</code>, <code>&lt;pr_description&gt;</code>, <code>&lt;issue_title&gt;</code></td><td>Blank content</td><td>System-injected context, not user-authored</td></tr>
-          <tr><td><code>messageId == "clone-repo"</code></td><td>Blank content + reasoning</td><td>Setup stutter</td></tr>
-          <tr><td><code>toolRequests</code> present + empty content</td><td>Skip entirely</td><td>Placeholder while tools run</td></tr>
-          <tr><td><code>parentToolCallId != nil</code> (sub-agent message)</td><td>Skip entirely</td><td>Nested agent output, shown via parent</td></tr>
-          <tr><td>All tool requests are <code>run_setup</code></td><td>Skip entirely</td><td>Setup noise</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- ─── User Message Resolution ─── -->
-  <section id="user-message-resolution">
-    <h2>User Message Resolution</h2>
-    <p>The user's initial prompt should always appear in the <strong>bubble</strong> above the timeline. It resolves through a priority chain:</p>
-
-    <h3>Priority 1: Session properties</h3>
-    <p>The session object itself may carry context from the trigger:</p>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th><code>eventType</code></th><th>Bubble shows</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><code>issue_created</code> / <code>issue_assignment</code></td><td>"Task started from issue #N"</td></tr>
-          <tr><td><code>pull_request_comment</code></td><td>"New comment on pull request #N"</td></tr>
-          <tr><td><code>pull_request_review</code></td><td>"New review on pull request #N"</td></tr>
-          <tr><td><code>workflow_run_failed</code></td><td>"Workflow run failed"</td></tr>
-          <tr><td><code>interval_triggered</code></td><td>"Scheduled task"</td></tr>
-          <tr><td><code>slack</code></td><td>"Slack message"</td></tr>
-          <tr><td><code>api_call_received</code></td><td>"API call received"</td></tr>
-          <tr><td><em>(none, but <code>eventContent</code> exists)</em></td><td>Raw <code>eventContent</code> text</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <h3>Priority 2: Event stream fallback</h3>
-    <p>If session properties don't resolve a bubble, extract the <strong>first <code>user.message</code> event</strong> from the event stream.</p>
-    <ul>
-      <li>Must not be empty after trimming</li>
-      <li>Must not contain XML system tags (<code>&lt;pr_title&gt;</code>, etc.)</li>
-      <li>When used, suppress the inline user message to avoid duplication</li>
-    </ul>
-
-    <h3>Priority 3: No bubble</h3>
-    <p>If neither resolves, the session has no user message bubble. This is valid for system-triggered sessions.</p>
-
-    <p><strong>Deduplication rule:</strong> When the bubble is populated from <code>eventContent</code> or the event stream fallback, the corresponding inline <code>user.message</code> in the timeline is suppressed. When the bubble is synthesized from <code>eventType</code>/<code>eventUrl</code> metadata (e.g., "Task started from issue #42"), the inline user message is <strong>kept</strong> — because the bubble shows context, not the prompt itself.</p>
-  </section>
-
-  <!-- ─── Tool Call Grouping ─── -->
-  <section id="tool-call-grouping">
-    <h2>Tool Call Grouping</h2>
-
-    <h3>The problem</h3>
-    <p>A typical agent session has dozens of tool calls. Showing each one flat creates an unreadable wall of items.</p>
-
-    <h3>The solution: Work bursts</h3>
-    <p>Consecutive tool calls are grouped into collapsible "bursts."</p>
-
-    <h3>Rules</h3>
+    <h3>Grouping rules</h3>
     <ol>
-      <li><strong>Minimum group size: 3.</strong> Fewer than 3 consecutive tools render flat (no grouping).</li>
-      <li><strong>"task" tool breaks the burst.</strong> Background agent launches are structurally significant — show them standalone.</li>
-      <li><strong>User messages break the burst.</strong> A user message means a new conversational turn.</li>
-      <li><strong>Permission requests and prompts break the burst.</strong> These are interaction points that shouldn't be hidden.</li>
-      <li><strong>Intermediate assistant messages become "thinking" items</strong> inside the group. The final assistant message after a burst stays outside as a visible response.</li>
-      <li><strong>Burst header:</strong> "Used N tools" with aggregate status (running/succeeded/failed).</li>
-      <li><strong>Duration:</strong> Computed from first to last tool in the group.</li>
-      <li><strong>Auto-expand:</strong> The last burst in the timeline starts expanded if:
-        <ul>
-          <li>Session is in-progress (show what the agent is actively doing)</li>
-          <li>No trailing message follows (don't hide the outcome)</li>
-        </ul>
-      </li>
+      <li><strong>Minimum 3</strong> consecutive tools to form a group</li>
+      <li><strong>"task" tool</strong> breaks the burst (agent launches are significant)</li>
+      <li><strong>User messages</strong> break the burst (new conversational turn)</li>
+      <li><strong>Permissions</strong> break the burst (interaction points)</li>
+      <li><strong>Last burst auto-expands</strong> if session is in-progress or no trailing message follows</li>
     </ol>
 
     <div class="callout callout-warn">
-      <span class="callout-label">⚠️ Platform Gap</span>
-      <p>iOS implements this via <code>groupToolCallBursts()</code> in the view model builder. Android groups consecutive same-name tools into <code>ToolCallGroup</code> but does not yet implement the broader work burst pattern. <strong>This is a parity gap to close.</strong></p>
+      <span class="callout-label">⚠️ Platform gap</span>
+      <p>iOS implements full burst grouping. Android only groups consecutive same-name tools — doesn't implement the broader work burst pattern yet.</p>
     </div>
   </section>
 
-  <!-- ─── Summary Extraction ─── -->
-  <section id="summary-extraction">
-    <h2>Summary Extraction</h2>
-
-    <h4>What</h4>
-    <p>The last assistant message with non-empty content is extracted from the timeline and displayed at the end of the session's event block, always visible.</p>
-
-    <h4>When</h4>
-    <p>Only for <strong>terminal sessions</strong> (completed, failed, cancelled, timed_out). Never for active sessions.</p>
-
-    <h4>How</h4>
-    <ol>
-      <li>Walk the items array backwards</li>
-      <li>Find the last <code>.assistant</code> message with non-empty <code>content</code></li>
-      <li>Remove it from items (prevents duplication)</li>
-      <li>Store as <code>summaryMessage</code> on the session view model</li>
-      <li>Render as plain markdown below the card</li>
-    </ol>
-
-    <h4>Why</h4>
-    <p>Users need to see "what happened" at a glance. The summary is the answer to "did it work?" — it should be visible in the flat timeline without any interaction.</p>
-
-    <div class="callout callout-warn">
-      <span class="callout-label">⚠️ Platform Gap</span>
-      <p>iOS implements this (PR #24323). Android does not yet. <strong>Parity gap to close.</strong></p>
-    </div>
-  </section>
-
-  <!-- ─── Multi-Session Behavior ─── -->
+  <!-- ═══════════════════════════════════════ -->
+  <!-- MULTI-SESSION (with visual)             -->
+  <!-- ═══════════════════════════════════════ -->
   <section id="multi-session">
-    <h2>Multi-Session Behavior</h2>
+    <h2>Multi-Session</h2>
+    <p>When a task has multiple sessions (follow-ups, different surfaces), they're separated by inline dividers — not cards.</p>
 
-    <h3>When do multiple sessions happen?</h3>
-    <ul>
-      <li>User sends a follow-up message after a session completes</li>
-      <li>User triggers work from a different surface (CLI session + web session)</li>
-      <li>Session handoff between clients</li>
-    </ul>
+    <div class="diagram">
+      <div class="diagram-label">Multi-session task</div>
+      <div class="timeline-visual">
+        <div class="tl-item tl-user">
+          <span class="tl-icon">👤</span>
+          <div class="tl-box tl-box-user">Fix the auth bug</div>
+        </div>
+        <div class="tl-item tl-tool">
+          <span class="tl-icon">📦</span>
+          <div class="tl-box tl-box-burst"><div class="burst-header">Used 4 tools</div></div>
+        </div>
+        <div class="tl-item tl-summary">
+          <span class="tl-icon">📋</span>
+          <div class="tl-box tl-box-summary">Summary — Fixed auth…</div>
+        </div>
 
-    <h3>Layout</h3>
-    <p>The timeline is flat and continuous. Sessions are separated by inline dividers, not cards:</p>
-<pre><code>Task Header
-  👤 User bubble (session 1, oldest)
-  ├─ Timeline events
-  └─ Summary
-  ─── Continued from web · GPT-4.1 · 12m ago ───
-  👤 User bubble (session 2)
-  ├─ Timeline events
-  └─ Summary
-  ─── Continued from CLI · GPT-4.1 · 3m ago ───
-  👤 User bubble (session 3, latest)
-  ├─ Timeline events
-  └─ Working indicator (if active)</code></pre>
+        <div class="tl-divider">
+          <span>Continued from CLI · GPT-4.1 · 3m ago</span>
+        </div>
+
+        <div class="tl-item tl-user">
+          <span class="tl-icon">👤</span>
+          <div class="tl-box tl-box-user">Also add tests for it</div>
+        </div>
+        <div class="tl-item tl-tool">
+          <span class="tl-icon">📦</span>
+          <div class="tl-box tl-box-burst"><div class="burst-header">Used 7 tools</div></div>
+        </div>
+        <div class="tl-item tl-working">
+          <span class="tl-icon">⟳</span>
+          <div class="tl-box tl-box-working">Working…</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Divider format</h3>
+    <div class="tl-divider standalone">
+      <span>Continued from &lt;origin&gt; · &lt;model&gt; · &lt;time&gt;</span>
+    </div>
+    <p>Origin maps from producer: <code>copilot-cli</code> → "CLI", <code>copilot-web</code> → "web", <code>copilot-vscode</code> → "VS Code"</p>
 
     <h3>Rules</h3>
-    <ol>
-      <li><strong>Flat timeline, no per-session collapse.</strong> Sessions are not expandable/collapsible units. The entire timeline reads top-to-bottom as a continuous stream.</li>
-      <li><strong>Session dividers appear between sessions.</strong> The first session has no divider. Each subsequent session is preceded by an inline divider showing origin, model, and relative time.</li>
-      <li><strong>Each session is self-contained.</strong> Its bubble, events, summary, and state come from its own event stream. No cross-session leaking.</li>
-      <li><strong>Chronological order.</strong> Sessions render in creation order, oldest first.</li>
-      <li><strong>Work bursts are the collapsible unit.</strong> Within a session, consecutive tool calls still group into collapsible bursts — but the session boundary itself is just a divider, not a card.</li>
-    </ol>
+    <ul>
+      <li>Flat timeline — sessions are <strong>not</strong> collapsible units</li>
+      <li>Chronological order, oldest first</li>
+      <li>Each session is self-contained (no cross-session leaking)</li>
+      <li>Only the first session has no divider</li>
+    </ul>
+
+    <div class="callout callout-warn">
+      <span class="callout-label">⚠️ Platform gap</span>
+      <p>Android uses a single event list from the last session only — not true multi-session layout. <strong>Major gap.</strong></p>
+    </div>
   </section>
 
-  <!-- ─── Session Origins ─── -->
-  <section id="session-origins">
-    <h2>Session Origins — Why Things Look Different</h2>
-    <p>Sessions arrive from different surfaces, and each populates different properties. This is why "the same task" can look different depending on where it was started.</p>
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SESSION STATUS                          -->
+  <!-- ═══════════════════════════════════════ -->
+  <section id="session-status">
+    <h2>Session Status</h2>
+
+    <div class="status-grid">
+      <div class="status-group">
+        <h4>Active</h4>
+        <div class="status-item"><code>in_progress</code><span>Working indicator, no summary</span></div>
+        <div class="status-item"><code>idle</code><span>Paused — preserve current state</span></div>
+        <div class="status-item"><code>waiting_for_user</code><span>Show permission/prompt UI</span></div>
+        <div class="status-item"><code>queued</code><span>Show queued indicator</span></div>
+      </div>
+      <div class="status-group">
+        <h4>Terminal</h4>
+        <div class="status-item"><code>completed</code><span>Extract summary, freeze content</span></div>
+        <div class="status-item"><code>failed</code><span>Extract summary, show error</span></div>
+        <div class="status-item"><code>cancelled</code><span>Extract summary</span></div>
+        <div class="status-item"><code>timed_out</code><span>Extract summary</span></div>
+      </div>
+    </div>
+
+    <p><strong>Key rule:</strong> Summary extraction only happens for terminal sessions. Never show a summary for something still running.</p>
+
+    <h3>Summary extraction</h3>
+    <p>Walk items backwards → find last assistant message with content → remove from items (deduplicate) → render below the session, always visible.</p>
+
+    <div class="callout callout-warn">
+      <span class="callout-label">⚠️ Platform gap</span>
+      <p>iOS ships summary extraction. Android does not yet.</p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- USER MESSAGE RESOLUTION                 -->
+  <!-- ═══════════════════════════════════════ -->
+  <section id="user-message">
+    <h2>User Message Resolution</h2>
+    <p>The user's prompt appears in a bubble above the timeline. It resolves through a priority chain:</p>
+
+    <div class="priority-chain">
+      <div class="priority-step">
+        <span class="priority-num">1</span>
+        <div>
+          <strong>Session properties</strong>
+          <p>If the session has <code>eventType</code> (e.g., <code>issue_created</code>) or <code>eventContent</code>, use that.</p>
+        </div>
+      </div>
+      <div class="priority-arrow">↓ not found?</div>
+      <div class="priority-step">
+        <span class="priority-num">2</span>
+        <div>
+          <strong>Event stream fallback</strong>
+          <p>Extract the first <code>user.message</code> event. Suppress it inline to avoid duplication.</p>
+        </div>
+      </div>
+      <div class="priority-arrow">↓ not found?</div>
+      <div class="priority-step">
+        <span class="priority-num">3</span>
+        <div>
+          <strong>No bubble</strong>
+          <p>Valid for system-triggered sessions (scheduled, API).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-warn">
+      <span class="callout-label">⚠️ Platform gap</span>
+      <p>Android drops <code>eventType</code>, <code>eventUrl</code>, and <code>resourceNumber</code> during mapping — can only resolve from the event stream, not session properties.</p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- PLATFORM PARITY                         -->
+  <!-- ═══════════════════════════════════════ -->
+  <section id="parity">
+    <h2>Platform Parity</h2>
 
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Origin</th><th><code>eventContent</code></th><th><code>eventType</code></th><th><code>eventUrl</code></th><th>User bubble source</th></tr>
+          <tr><th>Feature</th><th>iOS</th><th>Android</th><th>Gap</th></tr>
         </thead>
         <tbody>
-          <tr><td><strong>Mobile (Agents Panel)</strong></td><td>User's typed prompt</td><td>—</td><td>—</td><td>Session property</td></tr>
-          <tr><td><strong>Web (github.com)</strong></td><td>Issue/PR context</td><td><code>issue_created</code>, <code>pull_request_comment</code>, etc.</td><td>GitHub resource URL</td><td>Session property</td></tr>
-          <tr><td><strong>CLI (Copilot CLI)</strong></td><td>Often empty</td><td>—</td><td>—</td><td>Event stream fallback</td></tr>
-          <tr><td><strong>Desktop (VS Code)</strong></td><td>Often empty</td><td>—</td><td>—</td><td>Event stream fallback</td></tr>
-          <tr><td><strong>Scheduled / API</strong></td><td>—</td><td><code>interval_triggered</code>, <code>api_call_received</code></td><td>—</td><td>Constructed label</td></tr>
+          <tr><td>Session states</td><td><span class="badge badge-green">✓</span></td><td><span class="badge badge-green">✓</span></td><td>Minor naming diffs</td></tr>
+          <tr><td>User message bubble</td><td><span class="badge badge-green">✓</span></td><td><span class="badge badge-yellow">partial</span></td><td>Android: event stream only</td></tr>
+          <tr><td>Summary extraction</td><td><span class="badge badge-green">✓</span></td><td><span class="badge badge-red">✗</span></td><td>Android needs this</td></tr>
+          <tr><td>Work burst grouping</td><td><span class="badge badge-green">✓</span></td><td><span class="badge badge-yellow">partial</span></td><td>Android: same-name only</td></tr>
+          <tr><td>Tool call icons</td><td><span class="badge badge-red">✗</span></td><td><span class="badge badge-green">✓</span></td><td>iOS: text labels only</td></tr>
+          <tr><td>Content suppression</td><td><span class="badge badge-green">✓</span></td><td><span class="badge badge-yellow">5/6</span></td><td>Audit clone-repo, run_setup</td></tr>
+          <tr><td>Multi-session layout</td><td><span class="badge badge-green">✓</span></td><td><span class="badge badge-red">✗</span></td><td><strong>Major gap</strong></td></tr>
+          <tr><td>Hidden tools filter</td><td><span class="badge badge-green">✓</span></td><td><span class="badge badge-red">✗</span></td><td>Android needs filter</td></tr>
+          <tr><td>Permission UI</td><td><span class="badge badge-green">✓</span></td><td><span class="badge badge-yellow">generic</span></td><td>No dedicated UI</td></tr>
+          <tr><td>Session dividers</td><td><span class="badge badge-yellow">WIP</span></td><td><span class="badge badge-red">✗</span></td><td>Both in progress</td></tr>
         </tbody>
       </table>
     </div>
-
-    <p><strong>This is why PR #24321 exists</strong> — CLI and desktop sessions had no user bubble because they don't populate <code>eventContent</code>. The fallback to event stream closes this gap.</p>
-
-    <div class="callout callout-warn">
-      <span class="callout-label">⚠️ Platform Gap</span>
-      <p>Android drops <code>eventType</code>, <code>eventUrl</code>, and <code>resourceNumber</code> when mapping session models (<code>AgentTasksResponseMapper</code>), so it cannot currently resolve bubbles from session properties — only from the event stream.</p>
-    </div>
-  </section>
-
-  <!-- ─── Open Questions ─── -->
-  <section id="open-questions">
-    <h2>Open Questions</h2>
-    <p>These are not yet decided. Don't implement until the team resolves them.</p>
 
     <div class="callout callout-info">
-      <span class="callout-label">❓ Open Questions — Do Not Implement</span>
-      <p>The following items require team alignment before any work begins.</p>
-    </div>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Question</th><th>Context</th><th>Options</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Where/how to surface <code>assistant.intent</code>?</td>
-            <td>Both platforms track it, neither surfaces it to users yet</td>
-            <td>Session header subtitle? Inline timeline item? Only when expanded?</td>
-          </tr>
-          <tr>
-            <td>Should failed sessions show error details differently from the summary?</td>
-            <td>Currently summary extraction treats failed same as completed</td>
-            <td>Dedicated error banner vs. red-tinted summary vs. both</td>
-          </tr>
-          <tr>
-            <td>Should single-session tasks show any origin indicator?</td>
-            <td>Dividers only appear between sessions; single-session tasks have no origin/model context visible</td>
-            <td>Subtle footer? Only in multi-session? Always show origin somewhere?</td>
-          </tr>
-          <tr>
-            <td>Android multi-session: sections or single list?</td>
-            <td>iOS uses per-session sections. Android uses flat list from last session.</td>
-            <td>Match iOS sections? Or different pattern for smaller screens?</td>
-          </tr>
-        </tbody>
-      </table>
+      <span class="callout-label">❓ Open questions</span>
+      <ul>
+        <li>Where/how to surface <code>assistant.intent</code>?</li>
+        <li>Should failed sessions show errors differently from summary?</li>
+        <li>Should single-session tasks show origin info?</li>
+        <li>Android multi-session: match iOS sections or different pattern?</li>
+      </ul>
     </div>
   </section>
 
-  <!-- ─── Platform Parity Status ─── -->
-  <section id="platform-parity">
-    <h2>Platform Parity Status</h2>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Feature</th><th>Target</th><th>iOS</th><th>Android</th><th>Gap Notes</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Session states</td>
-            <td>9 states</td>
-            <td><span class="badge badge-green">Shipped</span></td>
-            <td><span class="badge badge-green">Shipped</span> (8 + UNKNOWN)</td>
-            <td>Minor naming diffs</td>
-          </tr>
-          <tr>
-            <td>User message bubble</td>
-            <td>Property → event fallback</td>
-            <td><span class="badge badge-green">Shipped</span></td>
-            <td><span class="badge badge-yellow">Partial</span></td>
-            <td>Android renders from event stream only. Drops <code>eventType</code>, <code>eventUrl</code>, <code>resourceNumber</code>.</td>
-          </tr>
-          <tr>
-            <td>Summary extraction</td>
-            <td>Last assistant msg below card</td>
-            <td><span class="badge badge-green">Shipped</span> (PR #24323)</td>
-            <td><span class="badge badge-red">Not implemented</span></td>
-            <td><strong>Android needs this</strong></td>
-          </tr>
-          <tr>
-            <td>Work burst grouping</td>
-            <td>3+ consecutive tools → collapsed group</td>
-            <td><span class="badge badge-green">Shipped</span></td>
-            <td><span class="badge badge-yellow">Partial</span></td>
-            <td>Android groups consecutive same-name tools only. No broader burst pattern.</td>
-          </tr>
-          <tr>
-            <td>Tool call icons</td>
-            <td>Semantic icons per tool type</td>
-            <td><span class="badge badge-red">Text labels</span></td>
-            <td><span class="badge badge-green">Shipped</span></td>
-            <td>Android is ahead</td>
-          </tr>
-          <tr>
-            <td>Content suppression</td>
-            <td>6 rules</td>
-            <td><span class="badge badge-green">Shipped</span></td>
-            <td><span class="badge badge-yellow">5 rules</span></td>
-            <td>Audit Android for <code>clone-repo</code> and <code>run_setup</code></td>
-          </tr>
-          <tr>
-            <td>Multi-session layout</td>
-            <td>Per-session sections, last expanded</td>
-            <td><span class="badge badge-green">Shipped</span></td>
-            <td><span class="badge badge-yellow">Flat list</span></td>
-            <td>Android uses single event list. <strong>Major gap.</strong></td>
-          </tr>
-          <tr>
-            <td>Hidden tools list</td>
-            <td>Shared list, 35+ tools</td>
-            <td><span class="badge badge-green">Shipped</span></td>
-            <td><span class="badge badge-red">No equivalent</span></td>
-            <td><strong>Android needs to implement tool filtering</strong></td>
-          </tr>
-          <tr>
-            <td>Working indicator</td>
-            <td>Bottom of timeline when in_progress</td>
-            <td><span class="badge badge-green">Shipped</span></td>
-            <td><span class="badge badge-gray">Needs verification</span></td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>Permission rendering</td>
-            <td>Dedicated permission UI</td>
-            <td><span class="badge badge-green">Shipped</span></td>
-            <td><span class="badge badge-yellow">Generic tool row</span></td>
-            <td>Android maps permissions into generic tool path</td>
-          </tr>
-          <tr>
-            <td>Intent display</td>
-            <td>Show <code>assistant.intent</code></td>
-            <td><span class="badge badge-gray">Tracked</span></td>
-            <td><span class="badge badge-gray">Tracked</span></td>
-            <td>❓ Open question: where/how to surface</td>
-          </tr>
-          <tr>
-            <td>Session dividers</td>
-            <td>Inline divider between sessions</td>
-            <td><span class="badge badge-yellow">In progress</span></td>
-            <td><span class="badge badge-red">Not implemented</span></td>
-            <td>iOS building divider entry; Android needs flat timeline first</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- ─── Decision Log ─── -->
-  <section id="decision-log">
+  <!-- ═══════════════════════════════════════ -->
+  <!-- DECISIONS                               -->
+  <!-- ═══════════════════════════════════════ -->
+  <section id="decisions">
     <h2>Decision Log</h2>
-    <p>Decisions made that both platforms should follow. Add new entries as decisions are made.</p>
-
     <div class="table-wrap">
       <table>
-        <thead>
-          <tr><th>Decision</th><th>Rationale</th><th>Date</th></tr>
-        </thead>
+        <thead><tr><th>Decision</th><th>Why</th></tr></thead>
         <tbody>
-          <tr><td>Summary only for terminal sessions</td><td>Don't show premature "summary" that might change</td><td>Apr 2026</td></tr>
-          <tr><td>Extract summary from items (don't duplicate)</td><td>One piece of info, one place</td><td>Apr 2026</td></tr>
-          <tr><td>Event fallback for user bubble</td><td>CLI/desktop sessions need parity</td><td>Apr 2026</td></tr>
-          <tr><td>3+ tools threshold for burst grouping</td><td>Fewer than 3 isn't worth collapsing</td><td>Apr 2026</td></tr>
-          <tr><td>Last session expanded, others collapsed</td><td><del>Focus on latest work, reduce noise</del> Superseded by flat timeline with inline dividers</td><td>Apr 2026</td></tr>
-          <tr><td>Sub-agent messages hidden at top level</td><td>Nested output belongs to parent context</td><td>Apr 2026</td></tr>
-          <tr><td>XML-tagged content blanked</td><td>System-injected context ≠ user intent</td><td>Apr 2026</td></tr>
-          <tr><td>Session headers replaced by inline dividers</td><td>Flat timeline doesn't need card headers. Origin/model/time shown as subtle timeline entries between sessions.</td><td>Apr 2026</td></tr>
+          <tr><td>Summary only for terminal sessions</td><td>Don't show a premature summary that might change</td></tr>
+          <tr><td>Extract summary from items (deduplicate)</td><td>One piece of info, one place</td></tr>
+          <tr><td>Event fallback for user bubble</td><td>CLI/desktop sessions need parity</td></tr>
+          <tr><td>3+ tools threshold for burst grouping</td><td>Fewer than 3 isn't worth collapsing</td></tr>
+          <tr><td>Session headers → inline dividers</td><td>Flat timeline doesn't need card headers</td></tr>
+          <tr><td>Sub-agent messages hidden</td><td>Nested output belongs to parent context</td></tr>
+          <tr><td>XML-tagged content blanked</td><td>System-injected context ≠ user intent</td></tr>
         </tbody>
       </table>
     </div>
   </section>
 
   <footer class="page-footer">
-    <p>Last updated: April 2026 · Maintained by iOS &amp; Android Copilot teams</p>
+    April 2026 · iOS &amp; Android Copilot teams
   </footer>
 
 </main>
 
 <script>
-// Scroll-driven active nav highlighting
 (function () {
   const links = document.querySelectorAll('.sidebar nav a');
   const sections = document.querySelectorAll('.content section[id]');
-
   function setActive() {
     let current = '';
     for (const s of sections) {
       if (s.getBoundingClientRect().top <= 120) current = s.id;
     }
-    links.forEach(a => {
-      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
-    });
+    links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + current));
   }
-
   window.addEventListener('scroll', setActive, { passive: true });
   setActive();
-
-  // Close sidebar on mobile nav click
-  links.forEach(a => {
-    a.addEventListener('click', () => {
-      document.querySelector('.sidebar').classList.remove('open');
-    });
-  });
+  links.forEach(a => a.addEventListener('click', () => document.querySelector('.sidebar').classList.remove('open')));
 })();
 </script>
 
